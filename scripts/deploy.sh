@@ -13,10 +13,10 @@ before=${1:-}
 after=${2:?after sha 가 필요합니다}
 
 nginx_dir=/opt/homebrew/etc/nginx
-support_dir="$HOME/Library/Application Support/NXDI"
+startup_dir="$HOME/Downloads/homeserver-setting/scripts"
 agent_dir="$HOME/Library/LaunchAgents"
 notifier_dir="$HOME/Downloads/boot-notifier"
-minecraft_dir="$HOME/minecraft-server"
+minecraft_dir="$HOME/Downloads/minecraft-server"
 backup_dir="$HOME/.homeserver-setting/backups/$(date +%Y%m%d-%H%M%S)"
 
 # 저장소 경로 -> 서버 경로. 비어 있으면 배포 대상이 아니다.
@@ -24,7 +24,7 @@ target_of() {
     case $1 in
         nginx/nginx.conf) echo "$nginx_dir/nginx.conf" ;;
         nginx/servers/*.conf) echo "$nginx_dir/servers/${1#nginx/servers/}" ;;
-        scripts/docker-startup.sh) echo "$support_dir/docker-startup.sh" ;;
+        scripts/docker-startup.sh) echo "$startup_dir/docker-startup.sh" ;;
         launchd/site.kimtaeeun.docker-startup.plist) echo "$agent_dir/site.kimtaeeun.docker-startup.plist" ;;
         apps/boot-notifier/*) echo "$notifier_dir/${1#apps/boot-notifier/}" ;;
         services/minecraft/docker-compose.yml) echo "$minecraft_dir/docker-compose.yml" ;;

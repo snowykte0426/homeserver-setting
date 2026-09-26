@@ -12,8 +12,8 @@ files=(
   "nginx/servers/kimtaeeun.conf|/opt/homebrew/etc/nginx/servers/kimtaeeun.conf"
   "launchd/site.kimtaeeun.docker-startup.plist|Library/LaunchAgents/site.kimtaeeun.docker-startup.plist"
   "launchd/homebrew.mxcl.nginx.plist|Library/LaunchAgents/homebrew.mxcl.nginx.plist"
-  "scripts/docker-startup.sh|Library/Application Support/NXDI/docker-startup.sh"
-  "services/minecraft/docker-compose.yml|minecraft-server/docker-compose.yml"
+  "scripts/docker-startup.sh|Downloads/homeserver-setting/scripts/docker-startup.sh"
+  "services/minecraft/docker-compose.yml|Downloads/minecraft-server/docker-compose.yml"
 )
 
 for entry in "${files[@]}"; do

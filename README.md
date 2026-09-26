@@ -1,6 +1,8 @@
 # homeserver-setting
 
 `kimtaeeun.site` 홈서버(Mac mini, macOS) 설정과 구동 파일 모음.
+
+서버 규칙: 모든 프로젝트는 서버의 `~/Downloads/<project>` 아래에 배포한다.
 자체 저장소가 있는 외부 프로젝트(my-resume, readygsm-server, Claude-Initer, nxdi, axia, sandrone 등)는 여기서 관리하지 않는다.
 
 > 공개 저장소다. 웹훅 URL, 비밀번호, `.env`, 인증서는 커밋하지 않는다. 각 디렉터리의 `*.example` 을 참고.
@@ -13,9 +15,9 @@
 | `nginx/servers/kimtaeeun.conf` | `/opt/homebrew/etc/nginx/servers/kimtaeeun.conf` | kimtaeeun.site 리버스 프록시 |
 | `launchd/homebrew.mxcl.nginx.plist` | `~/Library/LaunchAgents/` | `brew services` 가 만든 nginx 에이전트 |
 | `launchd/site.kimtaeeun.docker-startup.plist` | `~/Library/LaunchAgents/` | 로그인 시 `docker-startup.sh` 실행 |
-| `scripts/docker-startup.sh` | `~/Library/Application Support/NXDI/docker-startup.sh` | Docker 준비 대기 후 컨테이너 기동 |
+| `scripts/docker-startup.sh` | `~/Downloads/homeserver-setting/scripts/docker-startup.sh` | Docker 준비 대기 후 컨테이너 기동 |
 | `apps/boot-notifier/` | `~/Downloads/boot-notifier/` | 부팅 알림 + IP 변경 감지 → Discord 웹훅 |
-| `services/minecraft/` | `~/minecraft-server/` | Fabric Minecraft 서버 (`itzg/minecraft-server`) |
+| `services/minecraft/` | `~/Downloads/minecraft-server/` | Fabric Minecraft 서버 (`itzg/minecraft-server`) |
 | `services/infra/` | (compose 파일 없음) | mysql/redis, `docker inspect` 로 재구성 |
 
 ## 라우팅 (nginx → 컨테이너)
@@ -53,7 +55,7 @@ git diff
 
 ## CD (저장소 → 서버)
 
-`main` 에 push 하면 `.github/workflows/deploy.yml` 이 홈서버의 self-hosted runner(`homeserver` 라벨)에서
+`main` 에 push 하면 `.github/workflows/deploy.yml` 이 홈서버의 self-hosted runner(`~/Downloads/actions-runner`, `homeserver` 라벨)에서
 `scripts/deploy.sh` 를 실행해 바뀐 파일만 반영한다.
 
 | 변경 | 동작 |

@@ -9,7 +9,7 @@
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/bash</string>
-		<string>/Users/snowykte0426/Library/Application Support/NXDI/docker-startup.sh</string>
+		<string>/Users/snowykte0426/Downloads/homeserver-setting/scripts/docker-startup.sh</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
