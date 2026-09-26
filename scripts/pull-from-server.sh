@@ -13,10 +13,6 @@ files=(
   "launchd/site.kimtaeeun.docker-startup.plist|Library/LaunchAgents/site.kimtaeeun.docker-startup.plist"
   "launchd/homebrew.mxcl.nginx.plist|Library/LaunchAgents/homebrew.mxcl.nginx.plist"
   "scripts/docker-startup.sh|Library/Application Support/NXDI/docker-startup.sh"
-  "services/axia/docker-compose.yml|Downloads/axia/docker-compose.yml"
-  "services/axia/compose.host.yml|Downloads/axia/compose.host.yml"
-  "services/axia/start.sh|Downloads/axia/start.sh"
-  "services/axia/preflight.sh|Downloads/axia/preflight.sh"
   "services/minecraft/docker-compose.yml|minecraft-server/docker-compose.yml"
 )
 
