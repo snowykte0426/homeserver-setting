@@ -1,0 +1,31 @@
+# 공용 MySQL / Redis
+# 현재 컨테이너는 compose 라벨 없이 떠 있으며, 이 파일은 docker inspect 결과로 재구성한 것.
+# 기존 볼륨(kimtaeeun-infra_*)을 그대로 쓰도록 project name 을 kimtaeeun-infra 로 고정.
+name: kimtaeeun-infra
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in .env}
+      MYSQL_DATABASE: hwsence
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set in .env}"]
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:

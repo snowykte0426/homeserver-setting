@@ -1,0 +1,14 @@
+# secrets
+.env
+*.env
+!*.env.example
+!.env.example
+config.env
+services/axia/config/
+
+# runtime
+apps/boot-notifier/last_ips.json
+__pycache__/
+*.bak*
+.DS_Store
+logs/

@@ -1,0 +1,12 @@
+# Docker Desktop host profile. MySQL is an existing container, not a service in this project.
+# Set AXIA_SERVER_UID/GID to the host owner of the bind-mounted logs; never use UID 0.
+services:
+  server:
+    build: !reset null
+    volumes:
+      - type: bind
+        source: ${AXIA_MYSQL_TRUSTSTORE:?Set the existing MySQL public-CA truststore path}
+        target: /opt/axia/config/mysql-truststore.p12
+        read_only: true
+        bind:
+          create_host_path: false

@@ -1,0 +1,19 @@
+services:
+  minecraft:
+    image: itzg/minecraft-server
+    container_name: minecraft
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:25565:25565"
+    environment:
+      EULA: "TRUE"
+      VERSION: "26.2"
+      TYPE: "FABRIC"
+      FABRIC_LOADER_VERSION: "LATEST"
+      MEMORY: "2G"
+      TZ: "Asia/Seoul"
+      DIFFICULTY: "easy"
+      ENABLE_COMMAND_BLOCK: "true"
+    volumes:
+      - ./data:/data
+      - ./mods:/mods
