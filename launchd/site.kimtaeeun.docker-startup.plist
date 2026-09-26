@@ -6,13 +6,17 @@
 	<false/>
 	<key>Label</key>
 	<string>site.kimtaeeun.docker-startup</string>
+	<!-- ~/Downloads 접근을 위해 ssh localhost 로 실행 (scripts/launchd-dispatch.sh). 부팅 직후 sshd 대기 포함 -->
 	<key>ProgramArguments</key>
 	<array>
-		<string>/bin/bash</string>
-		<string>/Users/snowykte0426/Downloads/homeserver-setting/scripts/docker-startup.sh</string>
+		<string>/bin/sh</string>
+		<string>-c</string>
+		<string>for i in 1 2 3 4 5 6 7 8 9 10 11 12; do /usr/bin/ssh -i /Users/snowykte0426/.ssh/launchd_localhost -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes snowykte0426@localhost docker-startup &amp;&amp; exit 0; sleep 10; done; exit 1</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
+	<key>WorkingDirectory</key>
+	<string>/Users/snowykte0426</string>
 	<key>StandardErrorPath</key>
 	<string>/tmp/kimtaeeun-startup-error.log</string>
 	<key>StandardOutPath</key>

@@ -17,7 +17,7 @@ startup_dir="$HOME/Downloads/homeserver-setting/scripts"
 agent_dir="$HOME/Library/LaunchAgents"
 notifier_dir="$HOME/Downloads/boot-notifier"
 minecraft_dir="$HOME/Downloads/minecraft-server"
-backup_dir="$HOME/.homeserver-setting/backups/$(date +%Y%m%d-%H%M%S)"
+backup_dir="$HOME/Downloads/homeserver-setting/backups/$(date +%Y%m%d-%H%M%S)"
 
 # 저장소 경로 -> 서버 경로. 비어 있으면 배포 대상이 아니다.
 target_of() {
@@ -25,6 +25,8 @@ target_of() {
         nginx/nginx.conf) echo "$nginx_dir/nginx.conf" ;;
         nginx/servers/*.conf) echo "$nginx_dir/servers/${1#nginx/servers/}" ;;
         scripts/docker-startup.sh) echo "$startup_dir/docker-startup.sh" ;;
+        scripts/launchd-dispatch.sh) echo "$startup_dir/launchd-dispatch.sh" ;;
+        launchd/actions.runner.*.plist) echo "$agent_dir/${1#launchd/}" ;;
         launchd/site.kimtaeeun.docker-startup.plist) echo "$agent_dir/site.kimtaeeun.docker-startup.plist" ;;
         apps/boot-notifier/*) echo "$notifier_dir/${1#apps/boot-notifier/}" ;;
         services/minecraft/docker-compose.yml) echo "$minecraft_dir/docker-compose.yml" ;;
@@ -73,7 +75,7 @@ done <<< "$targets"
 [[ $drift == 0 ]] || exit 1
 
 # 2) 백업 후 반영
-nginx_changed=0 plist_changed=0 notifier_changed=0 minecraft_changed=0
+nginx_changed=0 plist_changed=0 runner_plist_changed=0 notifier_changed=0 minecraft_changed=0
 while IFS= read -r path; do
     [[ -z $path ]] && continue
     target=$(target_of "$path")
@@ -88,6 +90,7 @@ while IFS= read -r path; do
     echo "반영: $path -> $target"
     case $path in
         nginx/*) nginx_changed=1 ;;
+        launchd/actions.runner.*) runner_plist_changed=1 ;;
         launchd/*) plist_changed=1 ;;
         apps/boot-notifier/*) notifier_changed=1 ;;
         services/minecraft/*) minecraft_changed=1 ;;
@@ -113,6 +116,11 @@ if [[ $plist_changed == 1 ]]; then
     launchctl bootout "gui/$(id -u)/site.kimtaeeun.docker-startup" 2>/dev/null || true
     launchctl bootstrap "gui/$(id -u)" "$plist"
     echo "docker-startup LaunchAgent 재등록 완료"
+fi
+
+if [[ $runner_plist_changed == 1 ]]; then
+    # 이 작업 자체가 runner 위에서 돌고 있으므로 여기서 재시작하지 않는다.
+    echo "::warning::runner plist 가 바뀌었습니다. 서버에서 launchctl kickstart -k gui/\$(id -u)/actions.runner.snowykte0426-homeserver-setting.homeserver 로 재시작하세요."
 fi
 
 if [[ $notifier_changed == 1 ]]; then

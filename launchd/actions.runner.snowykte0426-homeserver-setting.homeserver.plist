@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>actions.runner.snowykte0426-homeserver-setting.homeserver</string>
+    <!-- svc.sh 가 만든 plist 를 ssh localhost 실행으로 바꾼 것. svc.sh install 을 다시 하면 덮어써지므로 이 파일로 복구 -->
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/bin/ssh</string>
+      <string>-tt</string>
+      <string>-i</string>
+      <string>/Users/snowykte0426/.ssh/launchd_localhost</string>
+      <string>-o</string>
+      <string>BatchMode=yes</string>
+      <string>-o</string>
+      <string>IdentitiesOnly=yes</string>
+      <string>-o</string>
+      <string>StrictHostKeyChecking=yes</string>
+      <string>-o</string>
+      <string>ServerAliveInterval=30</string>
+      <string>snowykte0426@localhost</string>
+      <string>runner</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/snowykte0426</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+    <key>StandardOutPath</key>
+    <string>/Users/snowykte0426/Library/Logs/actions.runner.snowykte0426-homeserver-setting.homeserver/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/snowykte0426/Library/Logs/actions.runner.snowykte0426-homeserver-setting.homeserver/stderr.log</string>
+  </dict>
+</plist>

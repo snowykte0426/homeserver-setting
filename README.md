@@ -15,6 +15,8 @@
 | `nginx/servers/kimtaeeun.conf` | `/opt/homebrew/etc/nginx/servers/kimtaeeun.conf` | kimtaeeun.site 리버스 프록시 |
 | `launchd/homebrew.mxcl.nginx.plist` | `~/Library/LaunchAgents/` | `brew services` 가 만든 nginx 에이전트 |
 | `launchd/site.kimtaeeun.docker-startup.plist` | `~/Library/LaunchAgents/` | 로그인 시 `docker-startup.sh` 실행 |
+| `launchd/actions.runner.*.plist` | `~/Library/LaunchAgents/` | self-hosted runner 에이전트 (ssh localhost 실행) |
+| `scripts/launchd-dispatch.sh` | `~/Downloads/homeserver-setting/scripts/` | launchd → ssh localhost forced command |
 | `scripts/docker-startup.sh` | `~/Downloads/homeserver-setting/scripts/docker-startup.sh` | Docker 준비 대기 후 컨테이너 기동 |
 | `apps/boot-notifier/` | `~/Downloads/boot-notifier/` | 부팅 알림 + IP 변경 감지 → Discord 웹훅 |
 | `services/minecraft/` | `~/Downloads/minecraft-server/` | Fabric Minecraft 서버 (`itzg/minecraft-server`) |
@@ -61,6 +63,8 @@ git diff
 | 변경 | 동작 |
 | --- | --- |
 | `nginx/**` | 복사 → `nginx -t` → `nginx -s reload` (실패 시 백업으로 복구) |
+| `launchd/actions.runner.*.plist` | `~/Library/LaunchAgents/` | self-hosted runner 에이전트 (ssh localhost 실행) |
+| `scripts/launchd-dispatch.sh` | `~/Downloads/homeserver-setting/scripts/` | launchd → ssh localhost forced command |
 | `scripts/docker-startup.sh` | 복사 |
 | `launchd/site.kimtaeeun.docker-startup.plist` | 복사 → `launchctl bootout/bootstrap` |
 | `apps/boot-notifier/**` | 복사 → 이미지 빌드 → 컨테이너 재생성 (부팅 알림이 한 번 더 감) |
@@ -69,5 +73,16 @@ git diff
 - `services/infra`, `launchd/homebrew.mxcl.nginx.plist` 는 참고용이라 배포하지 않는다.
 - 서버 파일이 저장소의 직전 버전과 다르면(서버에서 직접 수정) 아무것도 바꾸지 않고 실패한다.
   `pull-from-server.sh` 로 서버 내용을 먼저 커밋한 뒤 다시 push 한다.
-- 덮어쓴 파일은 서버의 `~/.homeserver-setting/backups/<시각>/` 에 남는다.
+- 덮어쓴 파일은 서버의 `~/Downloads/homeserver-setting/backups/<시각>/` 에 남는다.
+- runner plist 가 바뀌면 복사만 하고 재시작은 서버에서 직접 한다(작업 중인 runner 를 죽이지 않기 위해).
 - 공개 저장소라 외부 기여자의 fork PR 워크플로는 승인 없이 돌지 않도록 설정돼 있다.
+
+## launchd 와 ~/Downloads (macOS TCC)
+
+macOS 는 `~/Downloads` 를 보호 폴더로 취급해서, launchd 가 직접 띄운 프로세스는 접근하지 못한다(`Operation not permitted`).
+원격 로그인(sshd)에는 전체 디스크 접근 권한이 있으므로, runner 와 docker-startup 에이전트는 `ssh localhost <name>` 으로 실행한다.
+
+- 키: 서버의 `~/.ssh/launchd_localhost` (서버 안에서만 사용)
+- `authorized_keys` 에 `restrict,pty,from="127.0.0.1,::1",command=".../launchd-dispatch.sh"` 로 등록되어
+  `runner`, `docker-startup` 두 명령만 실행할 수 있다.
+- `./svc.sh install` 을 다시 하면 runner plist 가 원래 형태로 덮어써지므로 `launchd/` 의 파일로 복구한다.
