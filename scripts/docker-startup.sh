@@ -1,5 +1,4 @@
 #!/bin/bash
-# Docker 데몬이 준비될 때까지 대기 (최대 90초)
 timeout=90
 until /usr/local/bin/docker info &>/dev/null 2>&1; do
     if [ $timeout -le 0 ]; then

@@ -6,7 +6,6 @@
 	<false/>
 	<key>Label</key>
 	<string>site.kimtaeeun.docker-startup</string>
-	<!-- ~/Downloads 접근을 위해 ssh localhost 로 실행 (scripts/launchd-dispatch.sh). 부팅 직후 sshd 대기 포함 -->
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/sh</string>

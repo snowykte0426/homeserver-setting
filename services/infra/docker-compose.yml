@@ -1,6 +1,3 @@
-# 공용 MySQL / Redis
-# 현재 컨테이너는 compose 라벨 없이 떠 있으며, 이 파일은 docker inspect 결과로 재구성한 것.
-# 기존 볼륨(kimtaeeun-infra_*)을 그대로 쓰도록 project name 을 kimtaeeun-infra 로 고정.
 name: kimtaeeun-infra
 
 services:

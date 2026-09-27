@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-# 홈서버의 현재 설정 파일을 이 저장소로 가져온다. 시크릿 파일은 가져오지 않는다.
-# 사용: HOMESERVER=user@host ./scripts/pull-from-server.sh
 set -euo pipefail
 
 host=${HOMESERVER:?HOMESERVER=user@host 를 지정하세요}
 repo=$(cd "$(dirname "$0")/.." && pwd)
 
-# repo 경로 <- 서버 경로
 files=(
   "nginx/nginx.conf|/opt/homebrew/etc/nginx/nginx.conf"
   "nginx/servers/kimtaeeun.conf|/opt/homebrew/etc/nginx/servers/kimtaeeun.conf"

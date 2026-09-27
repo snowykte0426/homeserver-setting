@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# 저장소 변경분을 홈서버에 반영한다. self-hosted runner 에서 checkout 루트 기준으로 실행된다.
-# 사용: scripts/deploy.sh <before-sha> <after-sha>
-#
-# 서버 파일이 저장소의 이전 버전(before)과 다르면 누군가 서버에서 직접 고친 것으로 보고 중단한다.
-# 이 경우 scripts/pull-from-server.sh 로 서버 내용을 먼저 저장소에 반영한 뒤 다시 push 한다.
-#
-# macOS 기본 bash(3.2)에서 돌아야 하므로 배열/연관배열을 쓰지 않는다.
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
@@ -19,7 +12,6 @@ notifier_dir="$HOME/Downloads/boot-notifier"
 minecraft_dir="$HOME/Downloads/minecraft-server"
 backup_dir="$HOME/Downloads/homeserver-setting/backups/$(date +%Y%m%d-%H%M%S)"
 
-# 저장소 경로 -> 서버 경로. 비어 있으면 배포 대상이 아니다.
 target_of() {
     case $1 in
         *.example) ;;
@@ -54,8 +46,6 @@ for path in $changed; do
     target=$(target_of "$path")
     [[ -n $target ]] && targets="$targets$path"$'\n'
 done
-# GitHub Secret 으로 관리하는 서버 전용 설정 파일. 비어 있으면 서버 파일을 그대로 둔다.
-# $(...) 로 끝의 개행을 정규화해서 내용이 같으면 재배포하지 않는다.
 notifier_env=$(printf '%s' "${BOOT_NOTIFIER_ENV:-}")
 notifier_env_changed=0
 if [[ -n $notifier_env && $notifier_env != "$(cat "$notifier_dir/config.env" 2>/dev/null)" ]]; then
@@ -67,7 +57,6 @@ if [[ -z $targets && $notifier_env_changed == 0 ]]; then
     exit 0
 fi
 
-# 1) 드리프트 검사: 하나라도 걸리면 아무것도 바꾸지 않는다.
 drift=0
 while IFS= read -r path; do
     [[ -z $path ]] && continue
@@ -83,7 +72,6 @@ while IFS= read -r path; do
 done <<< "$targets"
 [[ $drift == 0 ]] || exit 1
 
-# 2) 백업 후 반영
 nginx_changed=0 plist_changed=0 runner_plist_changed=0 notifier_changed=0 minecraft_changed=0
 while IFS= read -r path; do
     [[ -z $path ]] && continue
@@ -94,7 +82,6 @@ while IFS= read -r path; do
         cp -p "$target" "$backup_dir/$path"
     fi
     mkdir -p "$(dirname "$target")"
-    # 기존 파일이 있으면 cp 는 대상의 권한을 유지한다.
     cp "$path" "$target"
     echo "반영: $path -> $target"
     case $path in
@@ -116,7 +103,6 @@ if [[ $notifier_env_changed == 1 ]]; then
     notifier_changed=1
 fi
 
-# 3) 서비스 적용
 if [[ $nginx_changed == 1 ]]; then
     if ! nginx -t; then
         echo "::error::nginx -t 실패, 이전 설정으로 되돌립니다."
@@ -138,7 +124,6 @@ if [[ $plist_changed == 1 ]]; then
 fi
 
 if [[ $runner_plist_changed == 1 ]]; then
-    # 이 작업 자체가 runner 위에서 돌고 있으므로 여기서 재시작하지 않는다.
     echo "::warning::runner plist 가 바뀌었습니다. 서버에서 launchctl kickstart -k gui/\$(id -u)/actions.runner.snowykte0426-homeserver-setting.homeserver 로 재시작하세요."
 fi
 

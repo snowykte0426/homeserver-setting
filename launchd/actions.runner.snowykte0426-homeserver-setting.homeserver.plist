@@ -4,7 +4,6 @@
   <dict>
     <key>Label</key>
     <string>actions.runner.snowykte0426-homeserver-setting.homeserver</string>
-    <!-- svc.sh 가 만든 plist 를 ssh localhost 실행으로 바꾼 것. svc.sh install 을 다시 하면 덮어써지므로 이 파일로 복구 -->
     <key>ProgramArguments</key>
     <array>
       <string>/usr/bin/ssh</string>
