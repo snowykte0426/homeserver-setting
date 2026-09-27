@@ -14,6 +14,8 @@ files=(
   "scripts/docker-startup.sh|Downloads/homeserver-setting/scripts/docker-startup.sh"
   "services/minecraft/docker-compose.yml|Downloads/minecraft-server/docker-compose.yml"
   "services/mail/docker-compose.yml|Downloads/mailserver/docker-compose.yml"
+  "services/webmail/docker-compose.yml|Downloads/webmail/docker-compose.yml"
+  "nginx/servers/webmail.conf|/opt/homebrew/etc/nginx/servers/webmail.conf"
 )
 
 for entry in "${files[@]}"; do

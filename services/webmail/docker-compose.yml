@@ -1,0 +1,23 @@
+services:
+  roundcube:
+    image: roundcube/roundcubemail:latest-apache
+    container_name: webmail
+    restart: unless-stopped
+    environment:
+      ROUNDCUBEMAIL_DEFAULT_HOST: ssl://mail.kimtaeeun.site
+      ROUNDCUBEMAIL_DEFAULT_PORT: "993"
+      ROUNDCUBEMAIL_SMTP_SERVER: ssl://mail.kimtaeeun.site
+      ROUNDCUBEMAIL_SMTP_PORT: "465"
+      ROUNDCUBEMAIL_DB_TYPE: sqlite
+      ROUNDCUBEMAIL_SKIN: elastic
+      ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE: 25M
+      ROUNDCUBEMAIL_PLUGINS: archive,zipdownload
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - db:/var/roundcube/db
+      - html:/var/www/html
+
+volumes:
+  db:
+  html:

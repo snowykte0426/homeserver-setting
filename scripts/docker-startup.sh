@@ -10,7 +10,7 @@ until /usr/local/bin/docker info &>/dev/null 2>&1; do
 done
 
 echo "$(date): Docker ready. Starting containers..."
-/usr/local/bin/docker start mysql redis my-resume nxdi-server sandrone claude-trigger minecraft mailserver
+/usr/local/bin/docker start mysql redis my-resume nxdi-server sandrone claude-trigger minecraft mailserver webmail
 sleep 20
 /usr/local/bin/docker start boot-notifier
 echo "$(date): Done."

@@ -1,6 +1,6 @@
 # AGENTS.md: homeserver-setting
 
-Config and run files for the home server behind `kimtaeeun.site`: nginx config, launchd agents, the `apps/boot-notifier` Python app, the minecraft and mail server compose files, and a CD pipeline that applies them to the server. Read this file before making changes.
+Config and run files for the home server behind `kimtaeeun.site`: nginx config, launchd agents, the `apps/boot-notifier` Python app, the minecraft, mail server, and webmail compose files, and a CD pipeline that applies them to the server. Read this file before making changes.
 
 > **IMPORTANT: If you change server setup, containers, paths, routing, CD, or secrets, update this file in the same commit.** On push, the Deploy workflow warns when repo files change but `AGENTS.md` does not.
 
@@ -37,7 +37,7 @@ launchctl kickstart -k gui/$(id -u)/actions.runner.snowykte0426-homeserver-setti
 - **Drift check:** if a server file differs from both the new version and the previous repo version, the run changes nothing and fails. Fix this with `pull-from-server.sh`. A manual run has no previous version to compare against, so any existing server file that differs from the repo counts as drift. In practice a manual run only creates missing files and applies `BOOT_NOTIFIER_ENV`.
 - **Backups:** overwritten files are copied to `~/Downloads/homeserver-setting/backups/<timestamp>/`.
 - **Deletions:** deleting a file from the repo does not delete it on the server. CD only prints a warning.
-- **Post-deploy actions:** nginx changes run `nginx -t` and then `nginx -s reload` (if the test fails, the previous config is restored and the run fails). A docker-startup plist change re-bootstraps that LaunchAgent. boot-notifier changes rebuild and rerun its container. A minecraft or mail compose change runs `docker compose up -d` in that directory. A runner plist change is only copied, so restart the runner manually (see [Commands](#commands)).
+- **Post-deploy actions:** nginx changes run `nginx -t` and then `nginx -s reload` (if the test fails, the previous config is restored and the run fails). A docker-startup plist change re-bootstraps that LaunchAgent. boot-notifier changes rebuild and rerun its container. A minecraft, mail, or webmail compose change runs `docker compose up -d` in that directory. A runner plist change is only copied, so restart the runner manually (see [Commands](#commands)).
 - The repo path to server path mapping is `target_of` in `scripts/deploy.sh`, and the reverse sync list is in `scripts/pull-from-server.sh`:
 
 | Repo path | Server path |
@@ -48,6 +48,7 @@ launchctl kickstart -k gui/$(id -u)/actions.runner.snowykte0426-homeserver-setti
 | `apps/boot-notifier/*` (not `*.example`) | `~/Downloads/boot-notifier/` |
 | `services/minecraft/docker-compose.yml` | `~/Downloads/minecraft-server/` |
 | `services/mail/docker-compose.yml` | `~/Downloads/mailserver/` |
+| `services/webmail/docker-compose.yml` | `~/Downloads/webmail/` |
 
 These files are reference only and are **not deployed**: `services/infra` (a reconstructed mysql/redis compose) and `launchd/homebrew.mxcl.nginx.plist`.
 
@@ -91,6 +92,7 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 | boot-notifier | `boot-notifier` | none | this repo, `apps/boot-notifier` → `~/Downloads/boot-notifier` |
 | minecraft | `itzg/minecraft-server` (Fabric) | 127.0.0.1:25565 | this repo, `services/minecraft` → `~/Downloads/minecraft-server` |
 | mailserver | `stalwartlabs/stalwart:v0.16` | 127.0.0.1:10025/10465/10993/10443 (public 25/465/993/443 via nginx), admin 127.0.0.1:18080 | this repo, `services/mail` → `~/Downloads/mailserver` (see [Mail](#mail)) |
+| webmail | `roundcube/roundcubemail:latest-apache` | 127.0.0.1:8081 | this repo, `services/webmail` → `~/Downloads/webmail` (see [Mail](#mail)) |
 | mysql | `mysql:8.0` | 0.0.0.0:3306 | started manually, volume `kimtaeeun-infra_mysql_data` |
 | redis | `redis:7-alpine` | 0.0.0.0:6379 | started manually, volume `kimtaeeun-infra_redis_data` |
 
@@ -113,6 +115,7 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 - Stalwart settings live in its Docker volumes, not in this repo. Change them with the CLI on the server: `~/Downloads/mailserver/cli.sh <describe|query|get|update|create|delete> ...` (uses `http://host.docker.internal:18080` and the admin credentials in `.env`).
 - Mailboxes: `contact@kimtaeeun.site`. Admin: `admin@kimtaeeun.site`. TLS certificates come from Let's Encrypt via TLS-ALPN-01 on port 443.
 - Resend domain `kimtaeeun.site` (region ap-northeast-1) must stay verified; its DNS records are `resend._domainkey` TXT, `send` MX and TXT, `rsend` CNAME.
+- Webmail is Roundcube at `webmail.kimtaeeun.site` (Cloudflare-proxied, nginx `servers/webmail.conf` → 127.0.0.1:8081). It logs in over IMAP 993 / SMTP 465 to `mail.kimtaeeun.site`. It cannot live on `mail.kimtaeeun.site` itself because Stalwart terminates TLS on that host's 443 for its ACME TLS-ALPN certificate.
 - Do not add Stalwart's suggested CAA records: they would block Cloudflare's edge certificates.
 
 ## nginx routing
@@ -123,6 +126,7 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 | `/nxdi-api/` | nxdi-server :10104 |
 | `/sandrone/` | sandrone :10105 |
 | `/axia/api/` | axia :18080 |
+| `webmail.kimtaeeun.site` (own server block) | webmail :8081 |
 | TCP 25565 (`stream` in `nginx.conf`) | minecraft |
 | TCP 25, 465, 993, 443 (`stream`, PROXY protocol) | mailserver 127.0.0.1:10025/10465/10993/10443 |
 
