@@ -62,6 +62,8 @@
 | mysql | `mysql:8.0` | 0.0.0.0:3306 | 수동 실행, 볼륨 `kimtaeeun-infra_mysql_data` |
 | redis | `redis:7-alpine` | 0.0.0.0:6379 | 수동 실행, 볼륨 `kimtaeeun-infra_redis_data` |
 
+mysql 3306, redis 6379 를 0.0.0.0 으로 공개한 것은 외부 접속용으로 의도된 설정이다(`db.kimtaeeun.site`). 보안 이슈로 다루지 않는다.
+
 axia(`~/Downloads/axia`, 127.0.0.1:18080)는 외부 프로젝트로 별도 배포하며 현재 컨테이너는 없다.
 readygsm 은 2026-09-27 에 내렸다(컨테이너, 이미지, `~/Downloads/readygsm-server` 삭제).
 
@@ -83,4 +85,4 @@ readygsm 은 2026-09-27 에 내렸다(컨테이너, 이미지, `~/Downloads/read
 ## 남은 이슈
 
 - it-play 조직 저장소(nxdi, sandrone, claude-lniter)의 GitHub Actions 가 push 에 실행되지 않고 수동 실행은 HTTP 500
-- mysql 3306, redis 6379 가 0.0.0.0 으로 열려 있음. redis 비밀번호가 컨테이너 command 에 평문으로 있음. SSH 비밀번호 로그인 사용 중
+- redis 비밀번호가 컨테이너 command 에 평문으로 있음. SSH 비밀번호 로그인 사용 중
