@@ -29,7 +29,7 @@ jobs:
         run: |
           if git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
             changed=$(git diff --name-only "$BEFORE" "$AFTER")
-            if echo "$changed" | grep -qvE '^(AGENTS\.md|CLAUDE\.md|README\.md)$' && ! echo "$changed" | grep -qx 'AGENTS.md'; then
+            if echo "$changed" | grep -qvE '^(AGENTS\.md|README\.md)$' && ! echo "$changed" | grep -qx 'AGENTS.md'; then
               echo "::warning::저장소 파일이 바뀌었지만 AGENTS.md 는 갱신되지 않았습니다. 운영 문서도 함께 고쳤는지 확인하세요."
             fi
           fi
