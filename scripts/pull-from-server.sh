@@ -13,6 +13,7 @@ files=(
   "scripts/launchd-dispatch.sh|Downloads/homeserver-setting/scripts/launchd-dispatch.sh"
   "scripts/docker-startup.sh|Downloads/homeserver-setting/scripts/docker-startup.sh"
   "services/minecraft/docker-compose.yml|Downloads/minecraft-server/docker-compose.yml"
+  "services/mail/docker-compose.yml|Downloads/mailserver/docker-compose.yml"
 )
 
 for entry in "${files[@]}"; do

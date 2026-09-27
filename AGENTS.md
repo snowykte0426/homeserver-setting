@@ -1,6 +1,6 @@
 # AGENTS.md: homeserver-setting
 
-Config and run files for the home server behind `kimtaeeun.site`: nginx config, launchd agents, the `apps/boot-notifier` Python app, the minecraft compose file, and a CD pipeline that applies them to the server. Read this file before making changes.
+Config and run files for the home server behind `kimtaeeun.site`: nginx config, launchd agents, the `apps/boot-notifier` Python app, the minecraft and mail server compose files, and a CD pipeline that applies them to the server. Read this file before making changes.
 
 > **IMPORTANT: If you change server setup, containers, paths, routing, CD, or secrets, update this file in the same commit.** On push, the Deploy workflow warns when repo files change but `AGENTS.md` does not.
 
@@ -37,7 +37,7 @@ launchctl kickstart -k gui/$(id -u)/actions.runner.snowykte0426-homeserver-setti
 - **Drift check:** if a server file differs from both the new version and the previous repo version, the run changes nothing and fails. Fix this with `pull-from-server.sh`. A manual run has no previous version to compare against, so any existing server file that differs from the repo counts as drift. In practice a manual run only creates missing files and applies `BOOT_NOTIFIER_ENV`.
 - **Backups:** overwritten files are copied to `~/Downloads/homeserver-setting/backups/<timestamp>/`.
 - **Deletions:** deleting a file from the repo does not delete it on the server. CD only prints a warning.
-- **Post-deploy actions:** nginx changes run `nginx -t` and then `nginx -s reload` (if the test fails, the previous config is restored and the run fails). A docker-startup plist change re-bootstraps that LaunchAgent. boot-notifier changes rebuild and rerun its container. A minecraft compose change runs `docker compose up -d`. A runner plist change is only copied, so restart the runner manually (see [Commands](#commands)).
+- **Post-deploy actions:** nginx changes run `nginx -t` and then `nginx -s reload` (if the test fails, the previous config is restored and the run fails). A docker-startup plist change re-bootstraps that LaunchAgent. boot-notifier changes rebuild and rerun its container. A minecraft or mail compose change runs `docker compose up -d` in that directory. A runner plist change is only copied, so restart the runner manually (see [Commands](#commands)).
 - The repo path to server path mapping is `target_of` in `scripts/deploy.sh`, and the reverse sync list is in `scripts/pull-from-server.sh`:
 
 | Repo path | Server path |
@@ -47,6 +47,7 @@ launchctl kickstart -k gui/$(id -u)/actions.runner.snowykte0426-homeserver-setti
 | `launchd/actions.runner.*.plist`, `launchd/site.kimtaeeun.docker-startup.plist` | `~/Library/LaunchAgents/` |
 | `apps/boot-notifier/*` (not `*.example`) | `~/Downloads/boot-notifier/` |
 | `services/minecraft/docker-compose.yml` | `~/Downloads/minecraft-server/` |
+| `services/mail/docker-compose.yml` | `~/Downloads/mailserver/` |
 
 These files are reference only and are **not deployed**: `services/infra` (a reconstructed mysql/redis compose) and `launchd/homebrew.mxcl.nginx.plist`.
 
@@ -59,6 +60,8 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 | `BOOT_NOTIFIER_ENV` | the whole boot-notifier `config.env` | `apps/boot-notifier/config.env` | Yes |
 | `MYSQL_ROOT_PASSWORD` | mysql container root password | `services/infra/.env` | No (stored only) |
 | `REDIS_PASSWORD` | redis `--requirepass` value | `services/infra/.env` | No (stored only) |
+| `MAIL_ENV` | the whole mail server `.env` (Stalwart admin, `contact@` mailbox password, `RESEND_RELAY_KEY`) | `services/mail/.env` | No (stored only; server copy at `~/Downloads/mailserver/.env`) |
+| `MAIL_RELAY_KEY` | Resend sending-only API key used as the SMTP relay password | `services/mail/.env` | No (stored only) |
 
 - `BOOT_NOTIFIER_ENV`: if it differs from the server file, CD rewrites the file with mode 0600 and redeploys boot-notifier, which sends one boot notification. If the secret is empty, the server file is kept. To rotate it, see [Commands](#commands).
 - Secrets for external projects (nxdi `.env`, axia `config/server.env`, claude-trigger `trigger.env`, sandrone env, and so on) are kept in each project's own GitHub Secrets and in that project's directory on the server.
@@ -87,6 +90,7 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 | claude-trigger | `claude-trigger` | none | it-play/claude-lniter CD → `~/Downloads/Claude-Initer` |
 | boot-notifier | `boot-notifier` | none | this repo, `apps/boot-notifier` → `~/Downloads/boot-notifier` |
 | minecraft | `itzg/minecraft-server` (Fabric) | 127.0.0.1:25565 | this repo, `services/minecraft` → `~/Downloads/minecraft-server` |
+| mailserver | `stalwartlabs/stalwart:v0.16` | 25, 465, 587, 993, 443; admin 127.0.0.1:18080 | this repo, `services/mail` → `~/Downloads/mailserver` (see [Mail](#mail)) |
 | mysql | `mysql:8.0` | 0.0.0.0:3306 | started manually, volume `kimtaeeun-infra_mysql_data` |
 | redis | `redis:7-alpine` | 0.0.0.0:6379 | started manually, volume `kimtaeeun-infra_redis_data` |
 
@@ -98,6 +102,16 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 - On boot, `scripts/docker-startup.sh` waits up to 300 s for Docker, starts every container above, and starts boot-notifier last.
 - Docker does not restart an `unless-stopped` container that was stopped with `docker stop`. That is why every container must be in the script's list.
 - Before rebooting, stop containers cleanly with `docker stop`, then power off.
+
+## Mail
+
+- Stalwart (`mailserver` container) receives mail for `kimtaeeun.site` directly on port 25 (the KT line allows inbound and outbound 25; the server has a public IP with no NAT). Hostname `mail.kimtaeeun.site`, which must be a DNS-only A record.
+- Outbound mail never goes out directly (no PTR on the residential IP). All non-local mail uses the `resend` relay route (`smtp.resend.com:465`, user `resend`, password from the container env `RESEND_RELAY_KEY`). Resend signs with DKIM selector `resend` and uses `send.kimtaeeun.site` as the envelope domain.
+- Stalwart's own DKIM is set to manual and its generated keys were deleted, because its automatic key rotation needs automated DNS. Do not re-enable it unless DNS automation is added.
+- Stalwart settings live in its Docker volumes, not in this repo. Change them with the CLI on the server: `~/Downloads/mailserver/cli.sh -k <describe|query|get|update|create|delete> ...` (reads admin credentials from `.env`).
+- Mailboxes: `contact@kimtaeeun.site`. Admin: `admin@kimtaeeun.site`. TLS certificates come from Let's Encrypt via TLS-ALPN-01 on port 443.
+- Resend domain `kimtaeeun.site` (region ap-northeast-1) must stay verified; its DNS records are `resend._domainkey` TXT, `send` MX and TXT, `rsend` CNAME.
+- Do not add Stalwart's suggested CAA records: they would block Cloudflare's edge certificates.
 
 ## nginx routing
 

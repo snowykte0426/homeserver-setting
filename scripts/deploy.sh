@@ -10,6 +10,7 @@ startup_dir="$HOME/Downloads/homeserver-setting/scripts"
 agent_dir="$HOME/Library/LaunchAgents"
 notifier_dir="$HOME/Downloads/boot-notifier"
 minecraft_dir="$HOME/Downloads/minecraft-server"
+mail_dir="$HOME/Downloads/mailserver"
 backup_dir="$HOME/Downloads/homeserver-setting/backups/$(date +%Y%m%d-%H%M%S)"
 
 target_of() {
@@ -23,6 +24,7 @@ target_of() {
         launchd/site.kimtaeeun.docker-startup.plist) echo "$agent_dir/site.kimtaeeun.docker-startup.plist" ;;
         apps/boot-notifier/*) echo "$notifier_dir/${1#apps/boot-notifier/}" ;;
         services/minecraft/docker-compose.yml) echo "$minecraft_dir/docker-compose.yml" ;;
+        services/mail/docker-compose.yml) echo "$mail_dir/docker-compose.yml" ;;
     esac
 }
 
@@ -72,7 +74,7 @@ while IFS= read -r path; do
 done <<< "$targets"
 [[ $drift == 0 ]] || exit 1
 
-nginx_changed=0 plist_changed=0 runner_plist_changed=0 notifier_changed=0 minecraft_changed=0
+nginx_changed=0 plist_changed=0 runner_plist_changed=0 notifier_changed=0 minecraft_changed=0 mail_changed=0
 while IFS= read -r path; do
     [[ -z $path ]] && continue
     target=$(target_of "$path")
@@ -90,6 +92,7 @@ while IFS= read -r path; do
         launchd/*) plist_changed=1 ;;
         apps/boot-notifier/*) notifier_changed=1 ;;
         services/minecraft/*) minecraft_changed=1 ;;
+        services/mail/*) mail_changed=1 ;;
     esac
 done <<< "$targets"
 
@@ -142,6 +145,11 @@ fi
 if [[ $minecraft_changed == 1 ]]; then
     (cd "$minecraft_dir" && docker compose up -d)
     echo "minecraft compose 적용 완료"
+fi
+
+if [[ $mail_changed == 1 ]]; then
+    (cd "$mail_dir" && docker compose up -d)
+    echo "mailserver compose 적용 완료"
 fi
 
 echo "배포 완료 (백업: $backup_dir)"
