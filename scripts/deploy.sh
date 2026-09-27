@@ -22,6 +22,7 @@ backup_dir="$HOME/Downloads/homeserver-setting/backups/$(date +%Y%m%d-%H%M%S)"
 # 저장소 경로 -> 서버 경로. 비어 있으면 배포 대상이 아니다.
 target_of() {
     case $1 in
+        *.example) ;;
         nginx/nginx.conf) echo "$nginx_dir/nginx.conf" ;;
         nginx/servers/*.conf) echo "$nginx_dir/servers/${1#nginx/servers/}" ;;
         scripts/docker-startup.sh) echo "$startup_dir/docker-startup.sh" ;;
