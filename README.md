@@ -73,6 +73,9 @@ git diff
 - `services/infra`, `launchd/homebrew.mxcl.nginx.plist` 는 참고용이라 배포하지 않는다.
 - 서버 파일이 저장소의 직전 버전과 다르면(서버에서 직접 수정) 아무것도 바꾸지 않고 실패한다.
   `pull-from-server.sh` 로 서버 내용을 먼저 커밋한 뒤 다시 push 한다.
+- 시크릿은 GitHub Secrets 로 관리한다. `BOOT_NOTIFIER_ENV`(config.env 전체 내용)가 바뀌면 서버의
+  `~/Downloads/boot-notifier/config.env` 를 0600 으로 다시 쓰고 boot-notifier 를 재배포한다. 값이 비어 있으면 서버 파일을 그대로 둔다.
+  변경: `gh secret set BOOT_NOTIFIER_ENV -R snowykte0426/homeserver-setting < config.env` 후 워크플로 재실행 또는 push.
 - 덮어쓴 파일은 서버의 `~/Downloads/homeserver-setting/backups/<시각>/` 에 남는다.
 - runner plist 가 바뀌면 복사만 하고 재시작은 서버에서 직접 한다(작업 중인 runner 를 죽이지 않기 위해).
 - 공개 저장소라 외부 기여자의 fork PR 워크플로는 승인 없이 돌지 않도록 설정돼 있다.

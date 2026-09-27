@@ -53,7 +53,15 @@ for path in $changed; do
     target=$(target_of "$path")
     [[ -n $target ]] && targets="$targets$path"$'\n'
 done
-if [[ -z $targets ]]; then
+# GitHub Secret 으로 관리하는 서버 전용 설정 파일. 비어 있으면 서버 파일을 그대로 둔다.
+# $(...) 로 끝의 개행을 정규화해서 내용이 같으면 재배포하지 않는다.
+notifier_env=$(printf '%s' "${BOOT_NOTIFIER_ENV:-}")
+notifier_env_changed=0
+if [[ -n $notifier_env && $notifier_env != "$(cat "$notifier_dir/config.env" 2>/dev/null)" ]]; then
+    notifier_env_changed=1
+fi
+
+if [[ -z $targets && $notifier_env_changed == 0 ]]; then
     echo "배포할 변경이 없습니다."
     exit 0
 fi
@@ -96,6 +104,16 @@ while IFS= read -r path; do
         services/minecraft/*) minecraft_changed=1 ;;
     esac
 done <<< "$targets"
+
+if [[ $notifier_env_changed == 1 ]]; then
+    if [[ -e $notifier_dir/config.env ]]; then
+        mkdir -p "$backup_dir/apps/boot-notifier"
+        cp -p "$notifier_dir/config.env" "$backup_dir/apps/boot-notifier/config.env"
+    fi
+    (umask 077 && printf '%s\n' "$notifier_env" > "$notifier_dir/config.env")
+    echo "반영: secrets.BOOT_NOTIFIER_ENV -> $notifier_dir/config.env"
+    notifier_changed=1
+fi
 
 # 3) 서비스 적용
 if [[ $nginx_changed == 1 ]]; then

@@ -24,4 +24,5 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
+          BOOT_NOTIFIER_ENV: ${{ secrets.BOOT_NOTIFIER_ENV }}
         run: bash scripts/deploy.sh "$BEFORE" "$AFTER"
