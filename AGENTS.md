@@ -53,7 +53,7 @@ These files are reference only and are **not deployed**: `services/infra` (a rec
 
 ## Secrets
 
-Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in local gitignored files. A local summary of every credential is kept at `.secrets/credentials.md` (gitignored, mode 0600); regenerate it when a secret changes.
+Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in local gitignored files.
 
 | Secret | Contents | Local copy | Applied by CD |
 | --- | --- | --- | --- |
