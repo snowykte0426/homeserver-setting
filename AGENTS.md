@@ -63,7 +63,9 @@
 | redis | `redis:7-alpine` | 0.0.0.0:6379 | 수동 실행, 볼륨 `kimtaeeun-infra_redis_data` |
 
 axia(`~/Downloads/axia`, 127.0.0.1:18080)는 외부 프로젝트로 별도 배포하며 현재 컨테이너는 없다.
-readygsm 은 2026-09-27 에 내렸다(컨테이너와 네트워크 삭제). `~/Downloads/readygsm-server` 디렉터리와 `deploy-app` 이미지는 남아 있다.
+readygsm 은 2026-09-27 에 내렸다(컨테이너, 이미지, `~/Downloads/readygsm-server` 삭제).
+
+네트워크: sandrone 은 네트워크 모드가 `readygsm-net` 이고 mysql, redis 도 이 네트워크에 붙어 있어 컨테이너 이름으로 접근한다. 이름은 readygsm 시절 것이지만 **지우면 sandrone, mysql, redis 가 시작하지 못한다**(2026-09-27 재부팅 때 실제로 발생, 네트워크를 다시 만들고 재연결해 복구). 네트워크를 지우기 전에는 `docker network inspect` 로 연결된 컨테이너를 먼저 확인한다.
 재부팅 시 `scripts/docker-startup.sh` 가 Docker 준비(최대 300초)를 기다린 뒤 위 컨테이너를 모두 켠다. `docker stop` 으로 멈춘 `unless-stopped` 컨테이너는 Docker 가 자동으로 다시 켜지 않으므로, 컨테이너를 추가하면 이 스크립트 목록에도 넣는다. 재부팅 전에는 컨테이너를 `docker stop` 으로 정상 종료한 뒤 전원을 끈다.
 
 ## nginx 라우팅
