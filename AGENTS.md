@@ -64,7 +64,7 @@
 | redis | `redis:7-alpine` | 0.0.0.0:6379 | 수동 실행, 볼륨 `kimtaeeun-infra_redis_data` |
 
 axia(`~/Downloads/axia`, 127.0.0.1:18080)는 외부 프로젝트로 별도 배포하며 현재 컨테이너는 없다.
-재부팅 시 `scripts/docker-startup.sh` 가 Docker 준비를 기다린 뒤 주요 컨테이너를 켠다(restart 정책과 별개의 보조 장치).
+재부팅 시 `scripts/docker-startup.sh` 가 Docker 준비(최대 300초)를 기다린 뒤 위 컨테이너를 모두 켠다. `docker stop` 으로 멈춘 `unless-stopped` 컨테이너는 Docker 가 자동으로 다시 켜지 않으므로, 컨테이너를 추가하면 이 스크립트 목록에도 넣는다. 재부팅 전에는 컨테이너를 `docker stop` 으로 정상 종료한 뒤 전원을 끈다.
 
 ## nginx 라우팅
 
