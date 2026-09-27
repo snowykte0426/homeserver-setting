@@ -1,88 +1,118 @@
-# 홈서버 운영 노트
+# AGENTS.md: homeserver-setting
 
-작업 전에 읽을 것. 공개 저장소이므로 비밀번호, 토큰, 웹훅 URL 은 여기에도 적지 않는다.
+Config and run files for the home server behind `kimtaeeun.site`: nginx config, launchd agents, the `apps/boot-notifier` Python app, the minecraft compose file, and a CD pipeline that applies them to the server. Read this file before making changes.
 
-**서버 구성, 컨테이너, 경로, 라우팅, CD, 시크릿 중 하나라도 바꾸면 같은 커밋에서 이 문서도 반드시 갱신한다.** 저장소 파일을 바꾸면서 이 문서를 건드리지 않으면 Deploy 워크플로가 경고를 남긴다.
+> **IMPORTANT: If you change server setup, containers, paths, routing, CD, or secrets, update this file in the same commit.** On push, the Deploy workflow warns when repo files change but `AGENTS.md` does not.
 
-## 서버
+## Rules
 
-- Mac mini (macOS 26, Apple Silicon), 사용자 `snowykte0426`, 도메인 `kimtaeeun.site`
-- DNS 는 Cloudflare. `kimtaeeun.site`, `www` 는 프록시(Flexible TLS, 서버는 80 만 받음), `mc`, `db` 는 DNS 전용
-- 가정용 회선이라 외부 IP 가 바뀔 수 있다. 바뀌면 boot-notifier 가 Discord 로 알린다
-- Docker Desktop, Homebrew nginx(`brew services`), 원격 로그인(SSH) 사용
+- **This repo is public.** Never write passwords, tokens, webhook URLs, or other secret values anywhere in it, including this file. Secret *names* are fine.
+- **Every project deployed to the server lives under `~/Downloads/<project>`.** Anything outside that is a violation. Move it, and fix that project's deploy path too.
+- **Do not add Claude co-author trailers** (`Co-Authored-By: Claude ...`) to commits.
+- **The repo is the source of truth for server config.** If something was edited directly on the server, sync it into the repo with `scripts/pull-from-server.sh` first, then push. Otherwise CD fails on drift.
+- **Leave the `# >>> name >>>` ... `# <<< name <<<` blocks in `nginx/servers/kimtaeeun.conf` alone.** External deploy scripts (for example nxdi's `server/deploy/scripts/apply_nginx.sh`) find and replace them by these markers. Do not remove or edit the markers or the block contents. If a change is needed, change the owning project too.
+- **When you add a container, add it to the `docker start` list in `scripts/docker-startup.sh`** (see [Startup](#startup-and-reboot)).
+- **Containers reach mysql and redis only through `host.docker.internal:3306` and `host.docker.internal:6379`** (the published host ports). Do not use a shared Docker network or container-name addressing. Each compose project uses only its own default network.
+- **Publishing mysql 3306 and redis 6379 on 0.0.0.0 is intentional** (external access through `db.kimtaeeun.site`). Do not report it as a security issue.
 
-## 규칙
+## Commands
 
-- 서버에 배포하는 모든 프로젝트는 `~/Downloads/<project>` 아래에 둔다. 그 밖에 있으면 규칙 위반이므로 옮기고 해당 프로젝트의 배포 경로도 고친다
-- 커밋에 Claude co-author 트레일러를 넣지 않는다
-- 이 저장소가 서버 설정의 기준이다. 서버에서 직접 고쳤다면 `scripts/pull-from-server.sh` 로 먼저 반영한 뒤 push 한다
+```sh
+# Sync server-side edits into the repo (run locally, then commit and push)
+HOMESERVER=user@host scripts/pull-from-server.sh
+
+# Rotate the boot-notifier config, then run a full deploy
+gh secret set BOOT_NOTIFIER_ENV -R snowykte0426/homeserver-setting < apps/boot-notifier/config.env
+gh workflow run deploy.yml -R snowykte0426/homeserver-setting
+
+# Restart the Actions runner on the server after its plist changes (CD does not restart it)
+launchctl kickstart -k gui/$(id -u)/actions.runner.snowykte0426-homeserver-setting.homeserver
+```
 
 ## CD
 
-- `.github/workflows/deploy.yml`: `main` push 또는 `workflow_dispatch` 시 self-hosted runner(`homeserver` 라벨)에서 `scripts/deploy.sh` 실행
-- push 는 이전 커밋과의 diff 만, 수동 실행은 전체 파일을 서버와 비교해 다른 것만 반영
-- 서버 파일이 저장소 직전 버전과 다르면(드리프트) 아무것도 바꾸지 않고 실패한다
-- 덮어쓴 파일은 `~/Downloads/homeserver-setting/backups/<시각>/` 에 백업
-- 저장소 경로와 서버 경로 대응은 `scripts/deploy.sh` 의 `target_of`, 동기화는 `scripts/pull-from-server.sh` 참고
-- runner plist 가 바뀌면 복사만 하고 재시작은 서버에서 `launchctl kickstart -k gui/$(id -u)/actions.runner.snowykte0426-homeserver-setting.homeserver`
-- `services/infra`(mysql/redis compose 재구성본)와 `launchd/homebrew.mxcl.nginx.plist` 는 참고용이라 배포하지 않는다
+`.github/workflows/deploy.yml` runs `scripts/deploy.sh` on the self-hosted runner (label `homeserver`) on every push to `main` and on `workflow_dispatch`.
 
-## 시크릿
+- **Scope:** a push applies only the diff since the previous commit. A manual run (or a push whose previous commit is missing) compares every tracked file with the server.
+- **Drift check:** if a server file differs from both the new version and the previous repo version, the run changes nothing and fails. Fix this with `pull-from-server.sh`. A manual run has no previous version to compare against, so any existing server file that differs from the repo counts as drift. In practice a manual run only creates missing files and applies `BOOT_NOTIFIER_ENV`.
+- **Backups:** overwritten files are copied to `~/Downloads/homeserver-setting/backups/<timestamp>/`.
+- **Deletions:** deleting a file from the repo does not delete it on the server. CD only prints a warning.
+- **Post-deploy actions:** nginx changes run `nginx -t` and then `nginx -s reload` (if the test fails, the previous config is restored and the run fails). A docker-startup plist change re-bootstraps that LaunchAgent. boot-notifier changes rebuild and rerun its container. A minecraft compose change runs `docker compose up -d`. A runner plist change is only copied, so restart the runner manually (see [Commands](#commands)).
+- The repo path to server path mapping is `target_of` in `scripts/deploy.sh`, and the reverse sync list is in `scripts/pull-from-server.sh`:
 
-값은 GitHub Secrets(`snowykte0426/homeserver-setting`)와 로컬의 gitignore 된 파일에만 둔다.
+| Repo path | Server path |
+| --- | --- |
+| `nginx/nginx.conf`, `nginx/servers/*.conf` | `/opt/homebrew/etc/nginx/...` |
+| `scripts/docker-startup.sh`, `scripts/launchd-dispatch.sh` | `~/Downloads/homeserver-setting/scripts/` |
+| `launchd/actions.runner.*.plist`, `launchd/site.kimtaeeun.docker-startup.plist` | `~/Library/LaunchAgents/` |
+| `apps/boot-notifier/*` (not `*.example`) | `~/Downloads/boot-notifier/` |
+| `services/minecraft/docker-compose.yml` | `~/Downloads/minecraft-server/` |
 
-| Secret | 내용 | 로컬 사본 | CD 반영 |
+These files are reference only and are **not deployed**: `services/infra` (a reconstructed mysql/redis compose) and `launchd/homebrew.mxcl.nginx.plist`.
+
+## Secrets
+
+Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in local gitignored files.
+
+| Secret | Contents | Local copy | Applied by CD |
 | --- | --- | --- | --- |
-| `BOOT_NOTIFIER_ENV` | boot-notifier `config.env` 전체 | `apps/boot-notifier/config.env` | O |
-| `MYSQL_ROOT_PASSWORD` | mysql 컨테이너 root 비밀번호 | `services/infra/.env` | X (보관만) |
-| `REDIS_PASSWORD` | redis `--requirepass` 값 | `services/infra/.env` | X (보관만) |
+| `BOOT_NOTIFIER_ENV` | the whole boot-notifier `config.env` | `apps/boot-notifier/config.env` | Yes |
+| `MYSQL_ROOT_PASSWORD` | mysql container root password | `services/infra/.env` | No (stored only) |
+| `REDIS_PASSWORD` | redis `--requirepass` value | `services/infra/.env` | No (stored only) |
 
-외부 프로젝트의 시크릿(nxdi `.env`, axia `config/server.env`, claude-trigger `trigger.env`, sandrone env 등)은 각 저장소의 GitHub Secrets 와 서버의 해당 프로젝트 디렉터리에 있다.
+- `BOOT_NOTIFIER_ENV`: if it differs from the server file, CD rewrites the file with mode 0600 and redeploys boot-notifier, which sends one boot notification. If the secret is empty, the server file is kept. To rotate it, see [Commands](#commands).
+- Secrets for external projects (nxdi `.env`, axia `config/server.env`, claude-trigger `trigger.env`, sandrone env, and so on) are kept in each project's own GitHub Secrets and in that project's directory on the server.
 
-- `BOOT_NOTIFIER_ENV`: 값이 서버 파일과 다르면 0600 으로 다시 쓰고 boot-notifier 재배포(부팅 알림 1회 발송). 비어 있으면 서버 파일 유지
-- 변경: `gh secret set BOOT_NOTIFIER_ENV -R snowykte0426/homeserver-setting < apps/boot-notifier/config.env` 후 `gh workflow run deploy.yml -R snowykte0426/homeserver-setting`
+## Server
 
-## macOS TCC 와 ~/Downloads
+- Mac mini (macOS 26, Apple Silicon), user `snowykte0426`, domain `kimtaeeun.site`.
+- DNS is on Cloudflare. `kimtaeeun.site` and `www` are proxied (Flexible TLS, so the server listens on port 80 only). `mc` and `db` are DNS-only.
+- It runs on a residential line, so the public IP can change. boot-notifier sends a Discord alert when it does.
+- Runs Docker Desktop, Homebrew nginx (`brew services`), and Remote Login (SSH).
 
-- launchd 가 직접 띄운 프로세스는 `~/Downloads` 에 접근하지 못한다(`Operation not permitted`, exit 126). SSH 세션은 전체 디스크 접근 권한이 있어 가능
-- 그래서 runner 와 docker-startup LaunchAgent 는 `ssh -i ~/.ssh/launchd_localhost localhost <runner|docker-startup>` 로 실행한다
-- `authorized_keys` 에 `restrict,pty,from="127.0.0.1,::1",command=".../scripts/launchd-dispatch.sh"` 로 등록되어 두 명령만 허용
-- `./svc.sh install` 을 다시 하면 runner plist 가 원래 형태로 덮어써지므로 `launchd/` 의 파일로 복구한다
+## macOS TCC and `~/Downloads`
 
-## 컨테이너
+- Processes started directly by launchd cannot access `~/Downloads` (`Operation not permitted`, exit 126). SSH sessions have Full Disk Access, so they can.
+- As a workaround, the runner and docker-startup LaunchAgents run `ssh -i ~/.ssh/launchd_localhost localhost <runner|docker-startup>`.
+- That key is registered in `authorized_keys` with `restrict,pty,from="127.0.0.1,::1",command=".../scripts/launchd-dispatch.sh"`, which allows only those two commands.
+- Running `./svc.sh install` again overwrites the runner plist with the stock version. Restore it from the file in `launchd/`.
 
-| 이름 | 이미지 | 포트 | 관리 |
+## Containers
+
+| Name | Image | Port | Managed by |
 | --- | --- | --- | --- |
 | my-resume | `my-resume:latest` | 127.0.0.1:4173 | snowykte0426/my-resume CD → `~/Downloads/my-resume` |
 | nxdi-server | `nxdi-server:latest` | 127.0.0.1:10104 | it-play/nxdi CD → `~/Downloads/nxdi` (compose `deploy/compose.yml`) |
 | sandrone | `ghcr.io/it-play/sandrone-code-review-bot` | 0.0.0.0:10105 | it-play/sandrone-code-review-bot CD → `~/Downloads/sandrone` (compose) |
-| claude-trigger | `claude-trigger` | - | it-play/claude-lniter CD → `~/Downloads/Claude-Initer` |
-| boot-notifier | `boot-notifier` | - | 이 저장소 `apps/boot-notifier` → `~/Downloads/boot-notifier` |
-| minecraft | `itzg/minecraft-server` (Fabric) | 127.0.0.1:25565 | 이 저장소 `services/minecraft` → `~/Downloads/minecraft-server` |
-| mysql | `mysql:8.0` | 0.0.0.0:3306 | 수동 실행, 볼륨 `kimtaeeun-infra_mysql_data` |
-| redis | `redis:7-alpine` | 0.0.0.0:6379 | 수동 실행, 볼륨 `kimtaeeun-infra_redis_data` |
+| claude-trigger | `claude-trigger` | none | it-play/claude-lniter CD → `~/Downloads/Claude-Initer` |
+| boot-notifier | `boot-notifier` | none | this repo, `apps/boot-notifier` → `~/Downloads/boot-notifier` |
+| minecraft | `itzg/minecraft-server` (Fabric) | 127.0.0.1:25565 | this repo, `services/minecraft` → `~/Downloads/minecraft-server` |
+| mysql | `mysql:8.0` | 0.0.0.0:3306 | started manually, volume `kimtaeeun-infra_mysql_data` |
+| redis | `redis:7-alpine` | 0.0.0.0:6379 | started manually, volume `kimtaeeun-infra_redis_data` |
 
-mysql 3306, redis 6379 를 0.0.0.0 으로 공개한 것은 외부 접속용으로 의도된 설정이다(`db.kimtaeeun.site`). 보안 이슈로 다루지 않는다.
+- axia (`~/Downloads/axia`, 127.0.0.1:18080) is an external project with its own deployment. It currently has no container.
+- readygsm was taken down on 2026-09-27 (container, image, and `~/Downloads/readygsm-server` deleted).
 
-axia(`~/Downloads/axia`, 127.0.0.1:18080)는 외부 프로젝트로 별도 배포하며 현재 컨테이너는 없다.
-readygsm 은 2026-09-27 에 내렸다(컨테이너, 이미지, `~/Downloads/readygsm-server` 삭제).
+### Startup and reboot
 
-네트워크: 컨테이너가 mysql, redis 에 접속할 때는 `host.docker.internal:3306`, `host.docker.internal:6379`(호스트 공개 포트)로 통일한다. 공용 Docker 네트워크나 컨테이너 이름 접속은 쓰지 않는다. 각 compose 프로젝트는 자기 기본 네트워크만 쓴다.
-재부팅 시 `scripts/docker-startup.sh` 가 Docker 준비(최대 300초)를 기다린 뒤 위 컨테이너를 모두 켠다. `docker stop` 으로 멈춘 `unless-stopped` 컨테이너는 Docker 가 자동으로 다시 켜지 않으므로, 컨테이너를 추가하면 이 스크립트 목록에도 넣는다. 재부팅 전에는 컨테이너를 `docker stop` 으로 정상 종료한 뒤 전원을 끈다.
+- On boot, `scripts/docker-startup.sh` waits up to 300 s for Docker, starts every container above, and starts boot-notifier last.
+- Docker does not restart an `unless-stopped` container that was stopped with `docker stop`. That is why every container must be in the script's list.
+- Before rebooting, stop containers cleanly with `docker stop`, then power off.
 
-## nginx 라우팅
+## nginx routing
 
-| 경로 | 업스트림 |
+| Path | Upstream |
 | --- | --- |
 | `/` | my-resume :4173 |
 | `/nxdi-api/` | nxdi-server :10104 |
 | `/sandrone/` | sandrone :10105 |
 | `/axia/api/` | axia :18080 |
-| TCP 25565 (stream) | minecraft |
+| TCP 25565 (`stream` in `nginx.conf`) | minecraft |
 
-`kimtaeeun.conf` 의 `# >>> name >>>` ~ `# <<< name <<<` 블록은 외부 배포 스크립트가 표식을 기준으로 교체한다(nxdi 의 `server/deploy/scripts/apply_nginx.sh` 등). 표식과 블록 내용은 지우거나 바꾸지 않는다. 바꿀 때는 해당 프로젝트 쪽도 같이 고친다.
+The `axia`, `nxdi-api`, and `sandrone` locations are marker blocks owned by external deploy scripts (see [Rules](#rules)).
 
-## 남은 이슈
+## Known issues
 
-- it-play 조직 저장소(nxdi, sandrone, claude-lniter)의 GitHub Actions 가 push 에 실행되지 않고 수동 실행은 HTTP 500
-- redis 비밀번호가 컨테이너 command 에 평문으로 있음. SSH 비밀번호 로그인 사용 중
+- GitHub Actions in the it-play org repos (nxdi, sandrone, claude-lniter) do not run on push, and manual runs return HTTP 500.
+- The redis password is in plain text in the container command.
+- SSH password login is still enabled.
