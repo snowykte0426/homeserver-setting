@@ -99,6 +99,7 @@ if [[ $notifier_env_changed == 1 ]]; then
         cp -p "$notifier_dir/config.env" "$backup_dir/apps/boot-notifier/config.env"
     fi
     (umask 077 && printf '%s\n' "$notifier_env" > "$notifier_dir/config.env")
+    chmod 600 "$notifier_dir/config.env"
     echo "반영: secrets.BOOT_NOTIFIER_ENV -> $notifier_dir/config.env"
     notifier_changed=1
 fi
