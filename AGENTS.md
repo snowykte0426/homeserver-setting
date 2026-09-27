@@ -56,7 +56,6 @@
 | my-resume | `my-resume:latest` | 127.0.0.1:4173 | snowykte0426/my-resume CD → `~/Downloads/my-resume` |
 | nxdi-server | `nxdi-server:latest` | 127.0.0.1:10104 | it-play/nxdi CD → `~/Downloads/nxdi` (compose `deploy/compose.yml`) |
 | sandrone | `ghcr.io/it-play/sandrone-code-review-bot` | 0.0.0.0:10105 | it-play/sandrone-code-review-bot CD → `~/Downloads/sandrone` |
-| readygsm-app | `deploy-app` | 0.0.0.0:10101 | themoment-team/readygsm-server → `~/Downloads/readygsm-server/deploy` |
 | claude-trigger | `claude-trigger` | - | it-play/claude-lniter CD → `~/Downloads/Claude-Initer` |
 | boot-notifier | `boot-notifier` | - | 이 저장소 `apps/boot-notifier` → `~/Downloads/boot-notifier` |
 | minecraft | `itzg/minecraft-server` (Fabric) | 127.0.0.1:25565 | 이 저장소 `services/minecraft` → `~/Downloads/minecraft-server` |
@@ -64,6 +63,7 @@
 | redis | `redis:7-alpine` | 0.0.0.0:6379 | 수동 실행, 볼륨 `kimtaeeun-infra_redis_data` |
 
 axia(`~/Downloads/axia`, 127.0.0.1:18080)는 외부 프로젝트로 별도 배포하며 현재 컨테이너는 없다.
+readygsm 은 2026-09-27 에 내렸다(컨테이너와 네트워크 삭제). `~/Downloads/readygsm-server` 디렉터리와 `deploy-app` 이미지는 남아 있다.
 재부팅 시 `scripts/docker-startup.sh` 가 Docker 준비(최대 300초)를 기다린 뒤 위 컨테이너를 모두 켠다. `docker stop` 으로 멈춘 `unless-stopped` 컨테이너는 Docker 가 자동으로 다시 켜지 않으므로, 컨테이너를 추가하면 이 스크립트 목록에도 넣는다. 재부팅 전에는 컨테이너를 `docker stop` 으로 정상 종료한 뒤 전원을 끈다.
 
 ## nginx 라우팅
@@ -71,7 +71,6 @@ axia(`~/Downloads/axia`, 127.0.0.1:18080)는 외부 프로젝트로 별도 배�
 | 경로 | 업스트림 |
 | --- | --- |
 | `/` | my-resume :4173 |
-| `/ready-gsm/` | readygsm-app :10101 |
 | `/nxdi-api/` | nxdi-server :10104 |
 | `/sandrone/` | sandrone :10105 |
 | `/axia/api/` | axia :18080 |
