@@ -55,7 +55,7 @@
 | --- | --- | --- | --- |
 | my-resume | `my-resume:latest` | 127.0.0.1:4173 | snowykte0426/my-resume CD → `~/Downloads/my-resume` |
 | nxdi-server | `nxdi-server:latest` | 127.0.0.1:10104 | it-play/nxdi CD → `~/Downloads/nxdi` (compose `deploy/compose.yml`) |
-| sandrone | `ghcr.io/it-play/sandrone-code-review-bot` | 0.0.0.0:10105 | it-play/sandrone-code-review-bot CD → `~/Downloads/sandrone` |
+| sandrone | `ghcr.io/it-play/sandrone-code-review-bot` | 0.0.0.0:10105 | it-play/sandrone-code-review-bot CD → `~/Downloads/sandrone` (compose, `infra-net`) |
 | claude-trigger | `claude-trigger` | - | it-play/claude-lniter CD → `~/Downloads/Claude-Initer` |
 | boot-notifier | `boot-notifier` | - | 이 저장소 `apps/boot-notifier` → `~/Downloads/boot-notifier` |
 | minecraft | `itzg/minecraft-server` (Fabric) | 127.0.0.1:25565 | 이 저장소 `services/minecraft` → `~/Downloads/minecraft-server` |
@@ -65,7 +65,7 @@
 axia(`~/Downloads/axia`, 127.0.0.1:18080)는 외부 프로젝트로 별도 배포하며 현재 컨테이너는 없다.
 readygsm 은 2026-09-27 에 내렸다(컨테이너, 이미지, `~/Downloads/readygsm-server` 삭제).
 
-네트워크: sandrone 은 네트워크 모드가 `readygsm-net` 이고 mysql, redis 도 이 네트워크에 붙어 있어 컨테이너 이름으로 접근한다. 이름은 readygsm 시절 것이지만 **지우면 sandrone, mysql, redis 가 시작하지 못한다**(2026-09-27 재부팅 때 실제로 발생, 네트워크를 다시 만들고 재연결해 복구). 네트워크를 지우기 전에는 `docker network inspect` 로 연결된 컨테이너를 먼저 확인한다.
+네트워크: 공용 네트워크 `infra-net` 에 mysql, redis, sandrone 이 붙어 있고 sandrone 은 `mysql`, `redis` 컨테이너 이름으로 접속한다(sandrone CD 의 `DOCKER_NETWORK`). 이 네트워크를 지우면 세 컨테이너가 시작하지 못한다.
 재부팅 시 `scripts/docker-startup.sh` 가 Docker 준비(최대 300초)를 기다린 뒤 위 컨테이너를 모두 켠다. `docker stop` 으로 멈춘 `unless-stopped` 컨테이너는 Docker 가 자동으로 다시 켜지 않으므로, 컨테이너를 추가하면 이 스크립트 목록에도 넣는다. 재부팅 전에는 컨테이너를 `docker stop` 으로 정상 종료한 뒤 전원을 끈다.
 
 ## nginx 라우팅
@@ -82,5 +82,5 @@ readygsm 은 2026-09-27 에 내렸다(컨테이너, 이미지, `~/Downloads/read
 
 ## 남은 이슈
 
-- it-play 조직 저장소(nxdi, sandrone, claude-lniter)의 GitHub Actions 가 push 에 실행되지 않고 수동 실행은 HTTP 500. sandrone 은 새 경로로 아직 재배포되지 않아 compose 라벨이 `/tmp/sandrone-deploy` 로 남아 있다
+- it-play 조직 저장소(nxdi, sandrone, claude-lniter)의 GitHub Actions 가 push 에 실행되지 않고 수동 실행은 HTTP 500
 - mysql 3306, redis 6379 가 0.0.0.0 으로 열려 있음. redis 비밀번호가 컨테이너 command 에 평문으로 있음. SSH 비밀번호 로그인 사용 중
