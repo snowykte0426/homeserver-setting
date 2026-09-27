@@ -55,7 +55,7 @@
 | --- | --- | --- | --- |
 | my-resume | `my-resume:latest` | 127.0.0.1:4173 | snowykte0426/my-resume CD → `~/Downloads/my-resume` |
 | nxdi-server | `nxdi-server:latest` | 127.0.0.1:10104 | it-play/nxdi CD → `~/Downloads/nxdi` (compose `deploy/compose.yml`) |
-| sandrone | `ghcr.io/it-play/sandrone-code-review-bot` | 0.0.0.0:10105 | it-play/sandrone-code-review-bot CD → `~/Downloads/sandrone` (compose, `infra-net`) |
+| sandrone | `ghcr.io/it-play/sandrone-code-review-bot` | 0.0.0.0:10105 | it-play/sandrone-code-review-bot CD → `~/Downloads/sandrone` (compose) |
 | claude-trigger | `claude-trigger` | - | it-play/claude-lniter CD → `~/Downloads/Claude-Initer` |
 | boot-notifier | `boot-notifier` | - | 이 저장소 `apps/boot-notifier` → `~/Downloads/boot-notifier` |
 | minecraft | `itzg/minecraft-server` (Fabric) | 127.0.0.1:25565 | 이 저장소 `services/minecraft` → `~/Downloads/minecraft-server` |
@@ -67,7 +67,7 @@ mysql 3306, redis 6379 를 0.0.0.0 으로 공개한 것은 외부 접속용으�
 axia(`~/Downloads/axia`, 127.0.0.1:18080)는 외부 프로젝트로 별도 배포하며 현재 컨테이너는 없다.
 readygsm 은 2026-09-27 에 내렸다(컨테이너, 이미지, `~/Downloads/readygsm-server` 삭제).
 
-네트워크: 공용 네트워크 `infra-net` 에 mysql, redis, sandrone 이 붙어 있고 sandrone 은 `mysql`, `redis` 컨테이너 이름으로 접속한다(sandrone CD 의 `DOCKER_NETWORK`). 이 네트워크를 지우면 세 컨테이너가 시작하지 못한다.
+네트워크: 컨테이너가 mysql, redis 에 접속할 때는 `host.docker.internal:3306`, `host.docker.internal:6379`(호스트 공개 포트)로 통일한다. 공용 Docker 네트워크나 컨테이너 이름 접속은 쓰지 않는다. 각 compose 프로젝트는 자기 기본 네트워크만 쓴다.
 재부팅 시 `scripts/docker-startup.sh` 가 Docker 준비(최대 300초)를 기다린 뒤 위 컨테이너를 모두 켠다. `docker stop` 으로 멈춘 `unless-stopped` 컨테이너는 Docker 가 자동으로 다시 켜지 않으므로, 컨테이너를 추가하면 이 스크립트 목록에도 넣는다. 재부팅 전에는 컨테이너를 `docker stop` 으로 정상 종료한 뒤 전원을 끈다.
 
 ## nginx 라우팅
