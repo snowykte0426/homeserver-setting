@@ -90,7 +90,7 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 | claude-trigger | `claude-trigger` | none | it-play/claude-lniter CD → `~/Downloads/Claude-Initer` |
 | boot-notifier | `boot-notifier` | none | this repo, `apps/boot-notifier` → `~/Downloads/boot-notifier` |
 | minecraft | `itzg/minecraft-server` (Fabric) | 127.0.0.1:25565 | this repo, `services/minecraft` → `~/Downloads/minecraft-server` |
-| mailserver | `stalwartlabs/stalwart:v0.16` | 25, 465, 587, 993, 443; admin 127.0.0.1:18080 | this repo, `services/mail` → `~/Downloads/mailserver` (see [Mail](#mail)) |
+| mailserver | `stalwartlabs/stalwart:v0.16` | 127.0.0.1:10025/10465/10993/10443 (public 25/465/993/443 via nginx), admin 127.0.0.1:18080 | this repo, `services/mail` → `~/Downloads/mailserver` (see [Mail](#mail)) |
 | mysql | `mysql:8.0` | 0.0.0.0:3306 | started manually, volume `kimtaeeun-infra_mysql_data` |
 | redis | `redis:7-alpine` | 0.0.0.0:6379 | started manually, volume `kimtaeeun-infra_redis_data` |
 
@@ -108,7 +108,9 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 - Stalwart (`mailserver` container) receives mail for `kimtaeeun.site` directly on port 25 (the KT line allows inbound and outbound 25; the server has a public IP with no NAT). Hostname `mail.kimtaeeun.site`, which must be a DNS-only A record.
 - Outbound mail never goes out directly (no PTR on the residential IP). All non-local mail uses the `resend` relay route (`smtp.resend.com:465`, user `resend`, password from the container env `RESEND_RELAY_KEY`). Resend signs with DKIM selector `resend` and uses `send.kimtaeeun.site` as the envelope domain.
 - Stalwart's own DKIM is set to manual and its generated keys were deleted, because its automatic key rotation needs automated DNS. Do not re-enable it unless DNS automation is added.
-- Stalwart settings live in its Docker volumes, not in this repo. Change them with the CLI on the server: `~/Downloads/mailserver/cli.sh -k <describe|query|get|update|create|delete> ...` (reads admin credentials from `.env`).
+- Docker Desktop on macOS hides the client IP on published ports, which breaks SPF, IPREV, and auth-failure bans. So nginx (native) listens on 25, 465, 993, and 443 and forwards to the container's `127.0.0.1:100xx` ports with `proxy_protocol on`. Stalwart trusts PROXY headers from `172.16.0.0/12` (the compose network gateway, `SystemSettings.proxyTrustedNetworks`). Changing that setting needs a container restart.
+- The admin `http` listener (8080, published on 127.0.0.1:18080) is exempt from PROXY protocol (`overrideProxyTrustedNetworks`), so the CLI can talk to it directly.
+- Stalwart settings live in its Docker volumes, not in this repo. Change them with the CLI on the server: `~/Downloads/mailserver/cli.sh <describe|query|get|update|create|delete> ...` (uses `http://host.docker.internal:18080` and the admin credentials in `.env`).
 - Mailboxes: `contact@kimtaeeun.site`. Admin: `admin@kimtaeeun.site`. TLS certificates come from Let's Encrypt via TLS-ALPN-01 on port 443.
 - Resend domain `kimtaeeun.site` (region ap-northeast-1) must stay verified; its DNS records are `resend._domainkey` TXT, `send` MX and TXT, `rsend` CNAME.
 - Do not add Stalwart's suggested CAA records: they would block Cloudflare's edge certificates.
@@ -122,6 +124,7 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 | `/sandrone/` | sandrone :10105 |
 | `/axia/api/` | axia :18080 |
 | TCP 25565 (`stream` in `nginx.conf`) | minecraft |
+| TCP 25, 465, 993, 443 (`stream`, PROXY protocol) | mailserver 127.0.0.1:10025/10465/10993/10443 |
 
 The `axia`, `nxdi-api`, and `sandrone` locations are marker blocks owned by external deploy scripts (see [Rules](#rules)).
 
