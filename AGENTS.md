@@ -87,7 +87,7 @@ Values live only in GitHub Secrets (`snowykte0426/homeserver-setting`) and in lo
 | --- | --- | --- | --- |
 | my-resume | `my-resume:latest` | 127.0.0.1:4173 | snowykte0426/my-resume CD → `~/Downloads/my-resume` |
 | nxdi-server | `nxdi-server:latest` | 127.0.0.1:10104 | it-play/nxdi CD → `~/Downloads/nxdi` (compose `deploy/compose.yml`) |
-| sandrone | `ghcr.io/it-play/sandrone-code-review-bot` | 0.0.0.0:10105 | it-play/sandrone-code-review-bot CD → `~/Downloads/sandrone` (compose) |
+| sandrone | `ghcr.io/it-play/sandrone-code-review-bot` | 0.0.0.0:10105 | tmp-it-play/sandrone-code-review-bot CD → `~/Downloads/sandrone` (compose) |
 | claude-trigger | `claude-trigger` | none | it-play/claude-lniter CD → `~/Downloads/Claude-Initer` |
 | boot-notifier | `boot-notifier` | none | this repo, `apps/boot-notifier` → `~/Downloads/boot-notifier` |
 | minecraft | `itzg/minecraft-server` (Fabric) | 127.0.0.1:25565 | this repo, `services/minecraft` → `~/Downloads/minecraft-server` |
@@ -134,6 +134,7 @@ The `axia`, `nxdi-api`, and `sandrone` locations are marker blocks owned by exte
 
 ## Known issues
 
-- GitHub Actions in the it-play org repos (nxdi, sandrone, claude-lniter) do not run on push, and manual runs return HTTP 500.
+- GitHub Actions in the it-play org repos (nxdi, claude-lniter) do not run on push, and manual runs return HTTP 500.
+- sandrone moved to `tmp-it-play/sandrone-code-review-bot` (a fork of the it-play repo) with a new GitHub App `sandrone-code-review` (App ID 5097177). Its CD has not run from the new repo yet; the server copy was updated by hand.
 - The redis password is in plain text in the container command.
 - SSH password login is still enabled.
